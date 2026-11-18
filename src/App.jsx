@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import "./App.css";
 import logo from "./assets/logo.svg";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+const API_BASE = (
+  import.meta.env.VITE_API_BASE_URL || "http://192.168.1.57:8000"
+).replace(/\/$/, "");
 
 async function api(path, { method = "GET", body, token, signal } = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -21,12 +23,26 @@ async function api(path, { method = "GET", body, token, signal } = {}) {
   } catch {
     data = text;
   }
-  if (!response.ok)
+  if (!response.ok) {
+    const detail = data?.detail;
+    const detailMessage = Array.isArray(detail)
+      ? detail
+          .map((item) => {
+            const field = Array.isArray(item.loc)
+              ? item.loc.filter((part) => part !== "body").join(".")
+              : "";
+            return `${field ? `${field}: ` : ""}${item.msg || JSON.stringify(item)}`;
+          })
+          .join("; ")
+      : typeof detail === "string"
+        ? detail
+        : detail
+          ? JSON.stringify(detail)
+          : "";
     throw new Error(
-      data?.message ||
-        data?.detail ||
-        `요청에 실패했습니다. (${response.status})`,
+      `${data?.message || detailMessage || "요청에 실패했습니다."} (${response.status}) · ${method} ${response.url}`,
     );
+  }
   return data;
 }
 
@@ -381,6 +397,7 @@ function App() {
   const [signupMode, setSignupMode] = useState(false);
   const [signupCode, setSignupCode] = useState("");
   const [signupNickname, setSignupNickname] = useState("");
+  const [signupPasswordConfirm, setSignupPasswordConfirm] = useState("");
   const [signupCodeSent, setSignupCodeSent] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [emailChange, setEmailChange] = useState({
@@ -559,6 +576,10 @@ function App() {
   const signup = async (event) => {
     event.preventDefault();
     setMessage("");
+    if (loginPassword !== signupPasswordConfirm) {
+      setMessage("비밀번호와 비밀번호 확인이 일치하지 않습니다.");
+      return;
+    }
     try {
       await api("/api/auth/signup", {
         method: "POST",
@@ -567,6 +588,7 @@ function App() {
           password: loginPassword,
           nickname: signupNickname,
           verification_code: signupCode,
+          password_confirm: signupPasswordConfirm,
         },
       });
       setSignupMode(false);
@@ -877,6 +899,19 @@ function App() {
                     required
                   />
                 </label>
+                {signupMode && (
+                  <label>
+                    비밀번호 확인
+                    <input
+                      type="password"
+                      name="password_confirm"
+                      autoComplete="new-password"
+                      value={signupPasswordConfirm}
+                      onChange={(event) => setSignupPasswordConfirm(event.target.value)}
+                      required
+                    />
+                  </label>
+                )}
                 <button className="primary-button">
                   {signupMode ? "가입하기" : "로그인"}
                 </button>
@@ -1048,6 +1083,12 @@ function App() {
                 비밀번호
                 <input type="password" value={loginPassword} onChange={(event) => setLoginPassword(event.target.value)} required />
               </label>
+              {signupMode && (
+                <label>
+                  비밀번호 확인
+                  <input type="password" name="password_confirm" autoComplete="new-password" value={signupPasswordConfirm} onChange={(event) => setSignupPasswordConfirm(event.target.value)} required />
+                </label>
+              )}
               <button className="primary-button">{signupMode ? "가입하기" : "로그인"}</button>
               <button type="button" className="text-button" onClick={() => { setSignupMode(!signupMode); setMessage(""); setSignupCodeSent(false); }}>
                 {signupMode ? "로그인으로 돌아가기" : "회원가입"}
