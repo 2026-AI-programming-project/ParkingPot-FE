@@ -486,19 +486,14 @@ function App() {
       setAuthChecked(true);
       return;
     }
-    setAuthChecked(false);
     api("/api/users/me", { token })
         .then((data) => {
-          setUser(data?.data || data);
+          setUser(data?.user || data?.data?.user || data?.data || data);
           setTab("home");
         })
         .catch((error) => {
-          localStorage.removeItem("parkingpot-token");
-          setToken(null);
-          setUser(null);
           setMessage(error.message);
         })
-        .finally(() => setAuthChecked(true));
   }, [token]);
 
   const openDetail = async (lot) => {
@@ -550,9 +545,11 @@ function App() {
         method: "POST",
         body: { email: loginEmail, password: loginPassword },
       });
-      const access = result?.access_token || result?.data?.access_token;
+      const payload = result?.data || result;
+      const access = payload?.access_token;
       if (!access) throw new Error("로그인 토큰을 받지 못했습니다.");
       localStorage.setItem("parkingpot-token", access);
+      setUser(payload?.user || null);
       setToken(access);
       setTab("home");
       setLoginPassword("");
