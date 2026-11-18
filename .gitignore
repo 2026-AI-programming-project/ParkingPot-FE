@@ -25,4 +25,6 @@ dist-ssr
 
 # Expo local cache
 .expo/
+android/
+ios/
 

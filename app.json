@@ -3,6 +3,7 @@
     "name": "ParkingPot",
     "slug": "parkingpot",
     "version": "1.0.0",
+    "scheme": "parkingpot",
     "orientation": "portrait",
   "newArchEnabled": true,
     "icon": "./assets/icon.png",
@@ -25,6 +26,7 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      "expo-system-ui",
     [
       "expo-build-properties",
       {
