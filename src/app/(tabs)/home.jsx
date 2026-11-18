@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Text, View } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import { initializeKakaoMapSDK, KakaoMapView } from "@react-native-kakao/map";
 import * as Location from "expo-location";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandHeader, ParkingCard, colors, ui } from "../../components/ui";
@@ -21,10 +21,45 @@ function coordinatesFor(item) {
   return { latitude, longitude };
 }
 
+const parkingLabelStyle = {
+  id: "parking-label-style",
+  levels: [{ level: 0, textLines: [{ fontSize: 14, color: "#078A56", strokeColor: "#FFFFFF", strokeWidth: 3 }] }],
+};
+const currentLocationStyle = {
+  id: "current-location-style",
+  levels: [{ level: 0, textLines: [{ fontSize: 15, color: "#1687FF", strokeColor: "#FFFFFF", strokeWidth: 4 }] }],
+};
+
 export default function HomeScreen() {
   const { favorites, toggleFavorite } = useApp();
   const [lots, setLots] = useState([]), [loading, setLoading] = useState(false), [error, setError] = useState("");
-  const [region, setRegion] = useState(null);
+  const [camera, setCamera] = useState(null), [mapReady, setMapReady] = useState(false), [mapError, setMapError] = useState(() => process.env.EXPO_PUBLIC_KAKAO_NATIVE_APP_KEY ? "" : "카카오 Native 앱 키가 설정되지 않았습니다. .env.local을 확인해 주세요.");
+  useEffect(() => {
+    let active = true;
+    const nativeKey = process.env.EXPO_PUBLIC_KAKAO_NATIVE_APP_KEY;
+    if (!nativeKey) return undefined;
+    initializeKakaoMapSDK(nativeKey).then(
+      () => { if (active) setMapReady(true); },
+      (reason) => { if (active) setMapError(reason?.message || "카카오 지도를 초기화하지 못했습니다."); },
+    );
+    return () => { active = false; };
+  }, []);
+  const labels = useMemo(() => ({
+    styles: [parkingLabelStyle, currentLocationStyle],
+    layers: [
+      { id: "parking-label-layer", zOrder: 1000, clickable: true },
+      { id: "current-location-layer", zOrder: 2000, clickable: false },
+    ],
+    labels: [
+      ...lots.flatMap((item) => {
+        const coordinate = coordinatesFor(item);
+        const id = item.id ?? item.parking_id;
+        if (!coordinate || id == null) return [];
+        return [{ id: `parking-${id}`, layerId: "parking-label-layer", styleId: parkingLabelStyle.id, coordinate, text: [{ value: item.name || item.parking_name || "주차장" }], clickable: true }];
+      }),
+      ...(camera ? [{ id: "current-location", layerId: "current-location-layer", styleId: currentLocationStyle.id, coordinate: { latitude: camera.latitude, longitude: camera.longitude }, text: [{ value: "● 현재 위치" }], clickable: false }] : []),
+    ],
+  }), [lots, camera]);
   const saved = new Set(favorites.map((item) => String(item.id ?? item.parking_id)));
   const load = useCallback(async () => {
     setLoading(true);
@@ -33,7 +68,7 @@ export default function HomeScreen() {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (permission.status !== "granted") throw new Error("주변 주차장을 검색하려면 위치 권한을 허용해 주세요.");
       const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setRegion({ latitude: current.coords.latitude, longitude: current.coords.longitude, latitudeDelta: 0.035, longitudeDelta: 0.035 });
+      setCamera({ latitude: current.coords.latitude, longitude: current.coords.longitude, zoomLevel: 15 });
       const params = new URLSearchParams({ lat: String(current.coords.latitude), lon: String(current.coords.longitude), radius_m: "5000", sort: "distance", page: "1", page_size: "20" });
       setLots(listFrom(await api(`/parking-lots?${params}`), ["parking_lots", "items", "results"]));
     } catch (e) { setError(e.message); setLots([]); }
@@ -46,28 +81,21 @@ export default function HomeScreen() {
     <BrandHeader/>
     <View style={styles.filters}><Text style={styles.filterActive}>거리순</Text><Text style={styles.filter}>요금</Text><Text style={styles.filter}>장애인 주차</Text></View>
     <View style={styles.map}>
-      {region ? <MapView
+      {camera && mapReady ? <KakaoMapView
         style={styles.mapFill}
-        initialRegion={region}
-        showsUserLocation
-        showsMyLocationButton
-        toolbarEnabled={false}
-        accessibilityLabel="현재 위치 주변 주차장 지도"
-      >
-        {lots.map((item) => {
-          const coordinate = coordinatesFor(item);
-          const id = item.id ?? item.parking_id;
-          if (!coordinate || id == null) return null;
-          return <Marker
-            key={String(id)}
-            coordinate={coordinate}
-            title={item.name || item.parking_name || "주차장"}
-            description={item.address || ""}
-            onCalloutPress={() => router.push({ pathname: "/parking/[id]", params: { id } })}
-          />;
-        })}
-      </MapView> : <View style={styles.mapMessage}>{loading ? <ActivityIndicator color={colors.green}/> : <Text style={styles.mapText}>{error || "위치 정보를 불러올 수 없습니다."}</Text>}</View>}
-      {region && !lots.some(coordinatesFor) && <View style={styles.mapNotice}><Text style={styles.mapText}>표시할 주차장 위치 정보가 없습니다.</Text></View>}
+        initialCamera={camera}
+        options={{ language: "ko", poi: { visible: true, clickable: true }, compass: { visible: true } }}
+        labels={labels}
+        onLabelClick={({ id }) => {
+          if (!id.startsWith("parking-")) return;
+          const parkingId = id.slice("parking-".length);
+          router.push({ pathname: "/parking/[id]", params: { id: parkingId } });
+        }}
+        onError={({ message }) => setMapError(message)}
+        accessibilityLabel="현재 위치 주변 카카오 주차장 지도"
+      /> : <View style={styles.mapMessage}>{loading || (!mapError && !mapReady) ? <ActivityIndicator color={colors.green}/> : <Text style={styles.mapText}>{mapError || error || "위치 정보를 불러올 수 없습니다."}</Text>}</View>}
+      {camera && mapReady && !lots.some(coordinatesFor) && <View style={styles.mapNotice}><Text style={styles.mapText}>표시할 주차장 위치 정보가 없습니다.</Text></View>}
+      {!!mapError && camera && mapReady && <View style={styles.mapNotice}><Text style={styles.mapText}>{mapError}</Text></View>}
     </View>
     <View style={styles.heading}><View><Text style={styles.title}>주변 주차장</Text><Text style={styles.subtitle}>검색 결과 {lots.length}곳</Text></View><Text style={styles.live}>● 실시간</Text></View>
     {!!error && <Text style={ui.error}>{error}</Text>}

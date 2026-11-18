@@ -4,12 +4,15 @@
     "slug": "parkingpot",
     "version": "1.0.0",
     "orientation": "portrait",
+  "newArchEnabled": true,
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
+    "bundleIdentifier": "com.parkingpot.app",
       "supportsTablet": true
     },
     "android": {
+    "package": "com.parkingpot.app",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -22,6 +25,16 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
+    [
+      "expo-build-properties",
+      {
+        "android": {
+          "extraMavenRepos": [
+            "https://devrepo.kakao.com/nexus/repository/kakaomap-releases/"
+          ]
+        }
+      }
+    ],
       [
         "expo-location",
         {
