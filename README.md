@@ -9,4 +9,4 @@ ParkingPot is an Expo and React Native app for iOS and Android. The web/Vite app
 3. Run `npm install`, then `npm run android` or `npm run ios` to build and launch the native development app.
 4. Run `npm start` to start Metro for the installed development app.
 
-The Kakao native map SDK is not included in Expo Go; use the development build created by `npm run android` or `npm run ios`. The app uses Expo Router routes under `src/app`, Expo Location for nearby search, and SecureStore for auth and anonymous-session tokens. API calls use the paths from the backend specification.
+The Kakao native map SDK is not included in Expo Go; use the development build created by `npm run android` or `npm run ios`. On Android, choose a connected ARM64 phone in the device picker; the Kakao map SDK does not support x86_64 emulators. The app uses Expo Router routes under `src/app`, Expo Location for nearby search, and SecureStore for auth and anonymous-session tokens. API calls use the paths from the backend specification.

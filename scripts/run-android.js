@@ -22,7 +22,7 @@ if (!env.JAVA_HOME && env.ProgramFiles) {
 }
 
 const expoCli = path.join(__dirname, "..", "node_modules", "expo", "bin", "cli");
-for (const args of [["prebuild", "--platform", "android"], ["run:android"]]) {
+for (const args of [["prebuild", "--platform", "android"], ["run:android", "--device"]]) {
   const result = spawnSync(process.execPath, [expoCli, ...args], { env, stdio: "inherit" });
   if (result.error) {
     console.error(result.error.message);
