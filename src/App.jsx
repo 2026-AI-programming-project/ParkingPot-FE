@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import "./App.css";
-import logo from "./assets/logo.png";
+import logo from "./assets/logo.svg";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
@@ -98,7 +98,6 @@ function Logo() {
   return (
     <header className="topbar">
       <img className="brand-logo" src={logo} alt="Parkingpot" />
-      <span className="topbar-dot" />
     </header>
   );
 }
@@ -366,9 +365,8 @@ function App() {
   const [anonymousToken, setAnonymousToken] = useState(() =>
     localStorage.getItem("parkingpot-anonymous-token"),
   );
-  const [token, setToken] = useState(() =>
-    localStorage.getItem("parkingpot-token"),
-  );
+  const [token, setToken] = useState(null);
+  const [authChecked, setAuthChecked] = useState(true);
   const [user, setUser] = useState(null);
   const [selectedLot, setSelectedLot] = useState(null);
   const [detail, setDetail] = useState(null);
@@ -458,20 +456,32 @@ function App() {
   );
 
   useEffect(() => {
+    if (!token) return undefined;
     const timer = setTimeout(() => searchLots(query, !query.trim()), 250);
     return () => clearTimeout(timer);
-  }, [query, searchLots]);
+  }, [query, searchLots, token]);
   useEffect(() => {
     if (tab === "favorites") loadFavorites();
   }, [tab, loadFavorites]);
   useEffect(() => {
-    if (token)
-      api("/api/users/me", { token })
-        .then(setUser)
+    if (!token) {
+      setUser(null);
+      setAuthChecked(true);
+      return;
+    }
+    setAuthChecked(false);
+    api("/api/users/me", { token })
+        .then((data) => {
+          setUser(data?.data || data);
+          setTab("home");
+        })
         .catch((error) => {
+          localStorage.removeItem("parkingpot-token");
+          setToken(null);
           setUser(null);
           setMessage(error.message);
-        });
+        })
+        .finally(() => setAuthChecked(true));
   }, [token]);
 
   const openDetail = async (lot) => {
@@ -527,6 +537,7 @@ function App() {
       if (!access) throw new Error("로그인 토큰을 받지 못했습니다.");
       localStorage.setItem("parkingpot-token", access);
       setToken(access);
+      setTab("home");
       setLoginPassword("");
     } catch (error) {
       setMessage(error.message);
@@ -1003,6 +1014,51 @@ function App() {
       </main>
     );
   };
+
+  if (!authChecked) {
+    return (
+      <div className="app-shell">
+        <Logo />
+        <div className="screen auth-loading" aria-label="로그인 확인 중" />
+      </div>
+    );
+  }
+
+  if (!token) {
+    return (
+      <div className="app-shell">
+        <Logo />
+        <div className="screen login-screen">
+          <main className="page login-page">
+            <p className="eyebrow">{signupMode ? "새 계정 만들기" : "주차를 더 편하게"}</p>
+            <h1>{signupMode ? "회원가입" : "로그인"}</h1>
+            <form className="login-form" onSubmit={signupMode ? signup : login}>
+              <label>
+                이메일
+                <input type="email" value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} required />
+              </label>
+              {signupMode && (
+                <>
+                  <button type="button" className="secondary-button" onClick={requestSignupCode}>인증번호 요청</button>
+                  {signupCodeSent && <label>인증번호<input value={signupCode} onChange={(event) => setSignupCode(event.target.value)} required /></label>}
+                  <label>닉네임<input value={signupNickname} onChange={(event) => setSignupNickname(event.target.value)} required /></label>
+                </>
+              )}
+              <label>
+                비밀번호
+                <input type="password" value={loginPassword} onChange={(event) => setLoginPassword(event.target.value)} required />
+              </label>
+              <button className="primary-button">{signupMode ? "가입하기" : "로그인"}</button>
+              <button type="button" className="text-button" onClick={() => { setSignupMode(!signupMode); setMessage(""); setSignupCodeSent(false); }}>
+                {signupMode ? "로그인으로 돌아가기" : "회원가입"}
+              </button>
+            </form>
+            {message && <p className="api-message error">{message}</p>}
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">
