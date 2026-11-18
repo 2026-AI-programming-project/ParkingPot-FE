@@ -1,21 +1,11 @@
-# React + Vite
+﻿# ParkingPot Native
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+ParkingPot is an Expo and React Native app for iOS and Android. The web/Vite app has been removed.
 
-Currently, two official plugins are available:
+## Run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+1. Set `EXPO_PUBLIC_API_BASE_URL` in `.env.local` to the backend origin.
+2. From this project folder run `npm install` and `npm start`.
+3. Open the QR code in Expo Go, or use `npm run android` with an Android emulator.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
-## Backend connection
-
-Set `VITE_API_BASE_URL` in `.env.local` to the backend origin (for example, `https://api.example.com`). API requests use that origin plus the paths in the API specification. If the backend is served from the same origin as Vite, leave the value empty.
-
-The app requests nearby parking data with the browser's location permission. A search term uses the `name` query parameter. Parking cards, detail fields, congestion, favorites, reviews, and account data are populated from API responses; no sample parking or review records are bundled in the UI.
+The app uses Expo Router routes under `src/app`, Expo Location for nearby search, and SecureStore for auth and anonymous-session tokens. API calls use the paths from the backend specification.

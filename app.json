@@ -1,0 +1,36 @@
+{
+    "expo":  {
+                 "name":  "ParkingPot",
+                 "slug":  "parkingpot",
+                 "version":  "1.0.0",
+                 "orientation":  "portrait",
+                 "icon":  "./assets/icon.png",
+                 "userInterfaceStyle":  "light",
+                 "ios":  {
+                             "supportsTablet":  true
+                         },
+                 "android":  {
+                                 "adaptiveIcon":  {
+                                                      "backgroundColor":  "#E6F4FE",
+                                                      "foregroundImage":  "./assets/android-icon-foreground.png",
+                                                      "backgroundImage":  "./assets/android-icon-background.png",
+                                                      "monochromeImage":  "./assets/android-icon-monochrome.png"
+                                                  }
+                             },
+                 "plugins":  [
+                                 "expo-router",
+                                 "expo-secure-store",
+                                 [
+                                     "expo-location",
+                                     {
+                                         "locationWhenInUsePermission":  "주변 주차장을 검색할 때 위치 정보를 사용합니다."
+                                     }
+                                 ],
+                                 "expo-status-bar"
+                             ],
+                 "platforms":  [
+                                   "ios",
+                                   "android"
+                               ]
+             }
+}
