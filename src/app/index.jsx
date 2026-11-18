@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { Redirect, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,6 +16,7 @@ export default function LoginScreen() {
   const [codeSent, setCodeSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const passwordInput = useRef(null);
 
   if (token) return <Redirect href="/(tabs)/home"/>;
   const onSendCode = async () => {
@@ -40,19 +41,24 @@ export default function LoginScreen() {
 
   return <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
     <BrandHeader/>
-    <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+      >
         <View style={styles.formWrap}>
           <Text style={ui.eyebrow}>{signupMode ? "새 계정 만들기" : "주차를 더 편하게"}</Text>
           <Text style={styles.title}>{signupMode ? "회원가입" : "로그인"}</Text>
           <View style={ui.form}>
-            <FormField label="이메일" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" placeholder="이메일 주소"/>
+            <FormField label="이메일" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" placeholder="이메일 주소" returnKeyType="next" onSubmitEditing={() => passwordInput.current?.focus()} blurOnSubmit={false}/>
             {signupMode && <>
               <Pressable style={ui.outline} onPress={onSendCode}><Text style={ui.outlineText}>인증번호 요청</Text></Pressable>
               {codeSent && <FormField label="인증번호" value={code} onChangeText={setCode} keyboardType="number-pad" placeholder="인증번호"/>}
               <FormField label="닉네임" value={nickname} onChangeText={setNickname} placeholder="닉네임"/>
             </>}
-            <FormField label="비밀번호" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" placeholder="비밀번호"/>
+            <FormField ref={passwordInput} label="비밀번호" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" placeholder="비밀번호" returnKeyType="go" onSubmitEditing={onSubmit}/>
             {signupMode && <FormField label="비밀번호 확인" value={confirm} onChangeText={setConfirm} secureTextEntry autoCapitalize="none" placeholder="비밀번호 확인"/>}
             <Pressable style={[ui.primary, busy && styles.disabled]} disabled={busy} onPress={onSubmit}>{busy ? <ActivityIndicator color={colors.white}/> : <Text style={ui.primaryText}>{signupMode ? "가입하기" : "로그인"}</Text>}</Pressable>
             <Pressable style={styles.toggle} onPress={() => { setSignupMode(!signupMode); setMessage(""); setCodeSent(false); }}><Text style={styles.toggleText}>{signupMode ? "로그인으로 돌아가기" : "회원가입"}</Text></Pressable>

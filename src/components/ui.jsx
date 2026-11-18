@@ -1,4 +1,4 @@
-import React from "react";
+import React, { forwardRef } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 import LogoAsset from "../../assets/logo.svg";
@@ -45,9 +45,9 @@ export function ParkingCard({ item, saved, onOpen, onToggle }) {
   </Pressable>;
 }
 
-export function FormField({ label, ...props }) {
-  return <View style={s.field}><Text style={s.label}>{label}</Text><TextInput style={s.input} placeholderTextColor="#a0ada7" {...props}/></View>;
-}
+export const FormField = forwardRef(function FormField({ label, ...props }, ref) {
+  return <View style={s.field}><Text style={s.label}>{label}</Text><TextInput ref={ref} style={s.input} placeholderTextColor="#a0ada7" {...props}/></View>;
+});
 
 export const ui = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.bg }, scroll: { paddingHorizontal: 18, paddingTop: 23, paddingBottom: 26 },
