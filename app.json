@@ -43,6 +43,7 @@
           "locationWhenInUsePermission": "주변 주차장을 검색할 때 위치 정보를 사용합니다."
         }
       ],
+      "./plugins/with-cmake-object-path-limit",
       "expo-status-bar"
     ],
     "platforms": ["ios", "android"]

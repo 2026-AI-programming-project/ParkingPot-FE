@@ -23,6 +23,7 @@
   "scripts": {
     "start": "expo start --dev-client",
     "android": "node scripts/run-android.js",
+    "android:apk": "node scripts/build-android-apk.js",
     "ios": "expo prebuild --platform ios && expo run:ios",
     "lint": "expo lint"
   },
