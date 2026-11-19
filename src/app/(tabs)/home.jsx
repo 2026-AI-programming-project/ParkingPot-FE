@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Text, View } from "react-native";
 import * as Location from "expo-location";
+import { WebView } from "react-native-webview";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { BrandHeader, ParkingCard, colors, ui } from "../../components/ui";
@@ -12,6 +13,8 @@ export default function HomeScreen() {
   const [lots, setLots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [mapError, setMapError] = useState(false);
+  const [mapCenter, setMapCenter] = useState({ latitude: 37.5665, longitude: 126.978 });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -23,6 +26,10 @@ export default function HomeScreen() {
       }
       const current = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
+      });
+      setMapCenter({
+        latitude: current.coords.latitude,
+        longitude: current.coords.longitude,
       });
       const params = new URLSearchParams({
         lat: String(current.coords.latitude),
@@ -47,7 +54,9 @@ export default function HomeScreen() {
     }
   }, []);
 
+  // Load the nearby location and parking list when this tab mounts.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
 
@@ -63,15 +72,23 @@ export default function HomeScreen() {
         <Text style={styles.filter}>요금</Text>
         <Text style={styles.filter}>장애인 주차</Text>
       </View>
-      <View style={styles.map} accessibilityLabel="주변 주차장 지도 미리보기">
-        <View style={styles.roadOne} />
-        <View style={styles.roadTwo} />
-        <View style={styles.parkOne}><Text style={styles.pin}>P</Text></View>
-        <View style={styles.parkTwo}><Text style={styles.pin}>P</Text></View>
-        <View style={styles.mapCaption}>
-          <Text style={styles.mapTitle}>주변 주차장</Text>
-          <Text style={styles.mapHint}>가까운 주차장을 목록에서 확인하세요</Text>
-        </View>
+      <View style={styles.map} accessibilityLabel="카카오 지도">
+        <WebView
+          key={`${mapCenter.latitude},${mapCenter.longitude}`}
+          style={styles.mapWebView}
+          source={{
+            uri: `https://map.kakao.com/link/map/ParkingPot,${mapCenter.latitude},${mapCenter.longitude}`,
+          }}
+          javaScriptEnabled
+          domStorageEnabled
+          originWhitelist={["*"]}
+          onError={() => setMapError(true)}
+        />
+        {mapError && (
+          <View style={styles.mapError}>
+            <Text style={styles.mapErrorText}>카카오 지도를 불러오지 못했습니다.</Text>
+          </View>
+        )}
       </View>
       <View style={styles.heading}>
         <View>
@@ -118,15 +135,10 @@ const styles = {
   filters: { height: 48, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 13, backgroundColor: colors.white },
   filterActive: { color: colors.white, backgroundColor: colors.green, borderRadius: 11, overflow: "hidden", paddingHorizontal: 12, paddingVertical: 8, fontSize: 11, fontWeight: "700" },
   filter: { color: "#475a51", backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 11, overflow: "hidden", paddingHorizontal: 12, paddingVertical: 7, fontSize: 11 },
-  map: { height: 220, backgroundColor: "#dcebe4", overflow: "hidden", justifyContent: "center", alignItems: "center" },
-  roadOne: { position: "absolute", width: "120%", height: 34, backgroundColor: "#fff", transform: [{ rotate: "-13deg" }] },
-  roadTwo: { position: "absolute", width: 34, height: "140%", backgroundColor: "#fff", transform: [{ rotate: "22deg" }], left: "62%" },
-  parkOne: { position: "absolute", left: "27%", top: "22%", width: 34, height: 34, borderRadius: 18, backgroundColor: colors.green, alignItems: "center", justifyContent: "center" },
-  parkTwo: { position: "absolute", right: "22%", bottom: "22%", width: 34, height: 34, borderRadius: 18, backgroundColor: colors.green, alignItems: "center", justifyContent: "center" },
-  pin: { color: colors.white, fontWeight: "800", fontSize: 17 },
-  mapCaption: { backgroundColor: "rgba(255,255,255,0.94)", paddingHorizontal: 18, paddingVertical: 12, borderRadius: 16, alignItems: "center" },
-  mapTitle: { color: colors.dark, fontSize: 15, fontWeight: "800" },
-  mapHint: { color: colors.muted, fontSize: 11, marginTop: 4 },
+  map: { height: 220, backgroundColor: "#dcebe4", overflow: "hidden" },
+  mapWebView: { flex: 1, backgroundColor: "#dcebe4" },
+  mapError: { position: "absolute", left: 12, right: 12, bottom: 10, alignItems: "center", backgroundColor: colors.white, borderRadius: 12, padding: 9 },
+  mapErrorText: { color: colors.red, fontSize: 11, fontWeight: "600" },
   heading: { paddingHorizontal: 18, paddingTop: 15, paddingBottom: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   title: { color: colors.dark, fontWeight: "800", fontSize: 17 },
   subtitle: { color: colors.muted, fontSize: 11, marginTop: 4 },
