@@ -3,11 +3,8 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
-    "@react-native-kakao/map": "^3.2.0",
     "expo": "~58.0.26",
-    "expo-build-properties": "^58.0.12",
     "expo-constants": "~58.0.16",
-    "expo-dev-client": "~58.0.20",
     "expo-linking": "~58.0.17",
     "expo-location": "~58.0.22",
     "expo-router": "~58.0.32",
@@ -21,10 +18,8 @@
     "react-native-svg": "15.16.0"
   },
   "scripts": {
-    "start": "expo start --dev-client",
-    "android": "node scripts/run-android.js",
-    "android:apk": "node scripts/build-android-apk.js",
-    "ios": "expo prebuild --platform ios && expo run:ios",
+    "start": "expo start --go",
+    "android": "expo start --go --android",
     "lint": "expo lint"
   },
   "private": true,

@@ -1,6 +1,6 @@
 const { withAppBuildGradle } = require("expo/config-plugins");
 
-const argument = "-DCMAKE_OBJECT_PATH_MAX=200";
+const argument = "-DCMAKE_OBJECT_PATH_MAX=128";
 
 module.exports = function withCmakeObjectPathLimit(config) {
   return withAppBuildGradle(config, (modConfig) => {
@@ -11,7 +11,7 @@ module.exports = function withCmakeObjectPathLimit(config) {
     }
     modConfig.modResults.contents = modConfig.modResults.contents.replace(
       defaultConfig,
-      '$1\n        externalNativeBuild {\n            cmake {\n                arguments "-DCMAKE_OBJECT_PATH_MAX=200"\n            }\n        }',
+      '$1\n        externalNativeBuild {\n            cmake {\n                arguments "-DCMAKE_OBJECT_PATH_MAX=128"\n            }\n        }',
     );
     return modConfig;
   });
