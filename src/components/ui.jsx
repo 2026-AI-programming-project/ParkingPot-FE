@@ -101,16 +101,16 @@ export function PageHeading({ eyebrow, title, subtitle }) {
 }
 
 export function ParkingCard({ item, saved, onOpen, onToggle }) {
-  const title = item.name || item.parking_name || "주차장";
+  const title = item.name || item.parking_name || "Parking lot";
   const state =
-    item.congestion?.status || item.congestion_status || "정보 없음";
+    item.congestion?.status || item.congestion_status || "Unavailable";
   const rating = item.rating ?? item.average_rating;
   const fee = item.fee ?? item.hourly_fee ?? item.price;
-  const stateColor = /여유|원활/.test(state)
+  const stateColor = /available|open/i.test(state)
     ? colors.green
-    : /혼잡/.test(state)
+    : /full|busy/i.test(state)
       ? colors.red
-      : state === "보통"
+      : state === "normal"
         ? colors.orange
         : colors.muted;
   return (
@@ -126,7 +126,7 @@ export function ParkingCard({ item, saved, onOpen, onToggle }) {
           <Text style={[s.status, { color: stateColor }]}>{state}</Text>
         </View>
         <Text style={s.address} numberOfLines={1}>
-          {item.address || "주소 정보 없음"}
+          {item.address || "Address unavailable"}
         </Text>
         <Text style={s.meta}>
           {rating != null ? `★ ${rating}` : ""}
@@ -324,3 +324,5 @@ const s = StyleSheet.create({
   label: ui.label,
   input: ui.input,
 });
+
+
