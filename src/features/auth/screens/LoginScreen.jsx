@@ -8,13 +8,13 @@ import {
   Text,
   View,
 } from "react-native";
-import { Redirect, router } from "expo-router";
+import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandHeader, FormField, colors, ui } from "../../../components/ui";
 import { useAuth } from "../../../context/AuthContext";
 
 export default function LoginScreen() {
-  const { token, ready, login, signup, requestSignupCode } = useAuth();
+  const { ready, login, signup, requestSignupCode } = useAuth();
   const [signupMode, setSignupMode] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,10 +26,8 @@ export default function LoginScreen() {
   const [message, setMessage] = useState("");
   const passwordInput = useRef(null);
 
-  if (!ready) return null;
-  if (token) return <Redirect href="/(tabs)/home" />;
-
   const sendVerificationCode = async () => {
+    if (!ready || busy) return;
     const normalizedEmail = email.trim();
     if (!normalizedEmail) {
       setMessage("이메일 주소를 입력해 주세요.");
@@ -49,6 +47,7 @@ export default function LoginScreen() {
   };
 
   const submit = async () => {
+    if (!ready || busy) return;
     setMessage("");
     if (!email.trim() || !password) {
       setMessage("이메일과 비밀번호를 입력해 주세요.");
@@ -113,7 +112,7 @@ export default function LoginScreen() {
                 onSubmitEditing={() => passwordInput.current?.focus()}
               />
               {signupMode && <>
-                <Pressable style={ui.outline} disabled={busy} onPress={sendVerificationCode}>
+                <Pressable style={[ui.outline, (!ready || busy) && styles.disabled]} disabled={!ready || busy} onPress={sendVerificationCode}>
                   <Text style={ui.outlineText}>인증 코드 요청</Text>
                 </Pressable>
                 {codeSent && <FormField label="인증 코드" value={verificationCode} onChangeText={setVerificationCode} keyboardType="number-pad" placeholder="인증 코드" />}
@@ -132,10 +131,10 @@ export default function LoginScreen() {
                 onSubmitEditing={signupMode ? undefined : submit}
               />
               {signupMode && <FormField label="비밀번호 확인" value={passwordConfirm} onChangeText={setPasswordConfirm} secureTextEntry autoCapitalize="none" autoComplete="new-password" placeholder="비밀번호 확인" />}
-              <Pressable style={[ui.primary, busy && styles.disabled]} disabled={busy} onPress={submit}>
+              <Pressable style={[ui.primary, (!ready || busy) && styles.disabled]} disabled={!ready || busy} onPress={submit}>
                 {busy ? <ActivityIndicator color={colors.white} /> : <Text style={ui.primaryText}>{signupMode ? "가입하기" : "로그인"}</Text>}
               </Pressable>
-              <Pressable style={styles.toggle} onPress={toggleMode} disabled={busy}>
+              <Pressable style={styles.toggle} onPress={toggleMode} disabled={!ready || busy}>
                 <Text style={styles.toggleText}>{signupMode ? "로그인으로 돌아가기" : "회원가입"}</Text>
               </Pressable>
             </View>
