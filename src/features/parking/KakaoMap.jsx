@@ -1,22 +1,27 @@
-import React, { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
-import { colors } from "./ui";
+import { colors } from "../../components/ui";
 
 const JAVASCRIPT_KEY = process.env.EXPO_PUBLIC_KAKAO_JAVASCRIPT_KEY || "";
 
 export function coordinatesFor(item) {
   const point = item?.location && !Array.isArray(item.location) ? item.location : item;
-  let latitude = Number(point?.latitude ?? point?.lat);
-  let longitude = Number(point?.longitude ?? point?.lon ?? point?.lng);
+  const toCoordinate = (value) => {
+    if (value == null || value === "") return Number.NaN;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : Number.NaN;
+  };
+  let latitude = toCoordinate(point?.latitude ?? point?.lat);
+  let longitude = toCoordinate(point?.longitude ?? point?.lon ?? point?.lng);
   const coordinates = item?.coordinates ?? point?.coordinates;
   if (
     (!Number.isFinite(latitude) || !Number.isFinite(longitude)) &&
     Array.isArray(coordinates) &&
     coordinates.length >= 2
   ) {
-    longitude = Number(coordinates[0]);
-    latitude = Number(coordinates[1]);
+    longitude = toCoordinate(coordinates[0]);
+    latitude = toCoordinate(coordinates[1]);
   }
   if (
     !Number.isFinite(latitude) ||
@@ -35,6 +40,8 @@ export default function KakaoMap({
   markers = [],
   onSelect,
 }) {
+  const [mapError, setMapError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
   const validMarkers = useMemo(
     () =>
       markers.flatMap((item) => {
@@ -46,7 +53,7 @@ export default function KakaoMap({
             id: String(id),
             latitude: coordinate.latitude,
             longitude: coordinate.longitude,
-            title: String(item.name || item.parking_name || "Parking lot"),
+            title: String(item.name || item.parking_name || "주차장"),
           },
         ];
       }),
@@ -69,7 +76,7 @@ kakao.maps.load(function(){
     const marker = new kakao.maps.Marker({ map, position: new kakao.maps.LatLng(item.latitude, item.longitude), title: item.title });
     kakao.maps.event.addListener(marker, 'click', function(){ window.ReactNativeWebView.postMessage(item.id); });
   });
-  if (!items.length) new kakao.maps.Marker({ map, position: center, title: "Current location" });
+  if (!items.length) new kakao.maps.Marker({ map, position: center, title: "현재 위치" });
 });
 </script></body></html>`;
   }, [latitude, longitude, validMarkers]);
@@ -77,22 +84,44 @@ kakao.maps.load(function(){
   if (!JAVASCRIPT_KEY) {
     return (
       <View style={styles.notice}>
-        <Text style={styles.noticeTitle}>Kakao JavaScript key required</Text>
+        <Text style={styles.noticeTitle}>Kakao 지도 설정이 필요합니다</Text>
         <Text style={styles.noticeText}>
-          Set EXPO_PUBLIC_KAKAO_JAVASCRIPT_KEY in .env.local and register http://localhost as a JavaScript SDK domain.
+          .env.local에 EXPO_PUBLIC_KAKAO_JAVASCRIPT_KEY를 설정하고 Kakao Developers에 http://localhost를 JavaScript SDK 도메인으로 등록해 주세요.
         </Text>
+      </View>
+    );
+  }
+
+  if (mapError) {
+    return (
+      <View style={styles.notice}>
+        <Text style={styles.noticeTitle}>지도를 불러오지 못했습니다</Text>
+        <Text style={styles.noticeText}>{mapError}</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            setMapError("");
+            setReloadKey((value) => value + 1);
+          }}
+          style={styles.retryButton}
+        >
+          <Text style={styles.retryText}>다시 시도</Text>
+        </Pressable>
       </View>
     );
   }
 
   return (
     <WebView
+      key={reloadKey}
       style={styles.webview}
       source={{ html, baseUrl: "http://localhost/" }}
       originWhitelist={["*"]}
       javaScriptEnabled
       domStorageEnabled
       onMessage={(event) => onSelect?.(event.nativeEvent.data)}
+      onError={(event) => setMapError(event.nativeEvent.description || "네트워크 연결과 Kakao 지도 키를 확인해 주세요.")}
+      onHttpError={(event) => setMapError(`지도 서버 응답 오류 (${event.nativeEvent.statusCode})`)}
     />
   );
 }
@@ -108,6 +137,8 @@ const styles = StyleSheet.create({
   },
   noticeTitle: { color: colors.dark, fontSize: 13, fontWeight: "700", textAlign: "center" },
   noticeText: { color: colors.muted, fontSize: 11, lineHeight: 17, textAlign: "center", marginTop: 7 },
+  retryButton: { marginTop: 12, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+  retryText: { color: colors.green, fontSize: 12, fontWeight: "700" },
 });
 
 
