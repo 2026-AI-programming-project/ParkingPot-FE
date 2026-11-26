@@ -30,10 +30,6 @@ export async function getParkingDetail(id) {
   return unwrapData(await api(`${PARKING_PATH}/${encodeURIComponent(id)}`), ["parking_lot"]);
 }
 
-export async function getParkingCongestion(id) {
-  return unwrapData(await api(`${PARKING_PATH}/${encodeURIComponent(id)}/congestion`));
-}
-
 export async function getParkingReviews(id) {
   return listFrom(
     await api(`${PARKING_PATH}/${encodeURIComponent(id)}/reviews`),

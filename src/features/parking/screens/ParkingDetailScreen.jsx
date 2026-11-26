@@ -6,7 +6,7 @@ import { BrandHeader, FormField, Glyph, colors, ui } from "../../../components/u
 import KakaoMap, { coordinatesFor } from "../KakaoMap";
 import { useAuth } from "../../../context/AuthContext";
 import { useFavorites } from "../../../context/FavoritesContext";
-import { createParkingReview, getParkingCongestion, getParkingDetail, getParkingReviews, rateParking } from "../parkingApi";
+import { createParkingReview, getParkingDetail, getParkingReviews, rateParking } from "../parkingApi";
 
 const EMPTY_PARKING = {};
 
@@ -17,7 +17,6 @@ export default function ParkingDetailScreen() {
   const { favorites, toggleFavorite, getAnonymousToken } = useFavorites();
   const [detail, setDetail] = useState(null);
   const [detailId, setDetailId] = useState(null);
-  const [congestion, setCongestion] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -29,8 +28,8 @@ export default function ParkingDetailScreen() {
   useEffect(() => {
     let active = true;
     if (!id) return () => { active = false; };
-    Promise.allSettled([getParkingDetail(id), getParkingCongestion(id), getParkingReviews(id)])
-      .then(([detailResult, congestionResult, reviewResult]) => {
+    Promise.allSettled([getParkingDetail(id), getParkingReviews(id)])
+      .then(([detailResult, reviewResult]) => {
         if (!active) return;
         if (detailResult.status === "fulfilled") {
           setDetail(detailResult.value);
@@ -40,7 +39,6 @@ export default function ParkingDetailScreen() {
           setError(detailResult.reason?.message || "주차장 정보를 불러오지 못했습니다.");
         }
         setDetailId(id);
-        if (congestionResult.status === "fulfilled") setCongestion(congestionResult.value);
         if (reviewResult.status === "fulfilled") setReviews(reviewResult.value);
       })
       .finally(() => { if (active) setLoading(false); });
@@ -54,9 +52,6 @@ export default function ParkingDetailScreen() {
     () => coordinatesFor(item) || { latitude: 37.5665, longitude: 126.978 },
     [item],
   );
-  const status = congestion?.status || congestion?.congestion_status || item.congestion_status || "정보 없음";
-  const available = congestion?.available_spaces ?? congestion?.remaining_spaces ?? item.available_spaces;
-  const total = congestion?.total_spaces ?? item.total_spaces;
   const title = item.name || item.parking_name || "주차장";
 
   const submitRating = useCallback(async (value) => {
@@ -128,20 +123,9 @@ export default function ParkingDetailScreen() {
         </View>
         <View style={styles.detail}>
           {isLoading && detailId !== id ? <ActivityIndicator color={colors.green} style={styles.spinner} /> : null}
-          <Text style={styles.badge}>{status}</Text>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.address}>{item.address || "주소 정보 없음"}</Text>
 
-          <View style={styles.capacity}>
-            <View style={styles.car}><Glyph name="car" color={colors.white} /></View>
-            <View>
-              <Text style={styles.muted}>현재 주차 가능</Text>
-              <Text style={styles.available}>
-                {available == null ? "정보 없음" : `${available}대`}
-                {total != null ? <Text style={styles.muted}> / 총 {total}대</Text> : null}
-              </Text>
-            </View>
-          </View>
 
           <View style={styles.grid}>
             <Fact label="이용 요금" value={item.fee ?? item.hourly_fee ?? "정보 없음"} />
@@ -210,13 +194,9 @@ const styles = {
   map: { height: 220, backgroundColor: "#eaf0ed", overflow: "hidden" },
   detail: { backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, marginTop: -1, paddingHorizontal: 18, paddingTop: 23, paddingBottom: 26 },
   spinner: { marginBottom: 12 },
-  badge: { alignSelf: "flex-start", color: colors.green, backgroundColor: colors.pale, overflow: "hidden", borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5, fontSize: 10, fontWeight: "700" },
   title: { color: colors.dark, fontSize: 22, fontWeight: "800", marginTop: 13 },
   address: { color: colors.muted, fontSize: 12, marginTop: 5, marginBottom: 16 },
-  capacity: { minHeight: 80, flexDirection: "row", alignItems: "center", gap: 12, padding: 13, borderRadius: 17, backgroundColor: colors.pale, marginBottom: 13 },
-  car: { width: 44, height: 44, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "#12a56a" },
   muted: { color: colors.muted, fontSize: 10 },
-  available: { color: colors.green, fontSize: 20, fontWeight: "800", marginTop: 3 },
   grid: { flexDirection: "row", flexWrap: "wrap", borderWidth: 1, borderColor: colors.border, borderRadius: 16, overflow: "hidden", marginBottom: 25 },
   fact: { width: "50%", minHeight: 70, justifyContent: "center", gap: 7, paddingHorizontal: 13, borderBottomWidth: 1, borderColor: colors.border },
   factValue: { color: colors.dark, fontWeight: "700", fontSize: 12 },

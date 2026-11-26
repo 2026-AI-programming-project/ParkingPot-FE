@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import * as SecureStore from "expo-secure-store";
+import * as SecureStore from "../lib/secureStorage";
 import { api, listFrom } from "../lib/api";
 
 const FavoritesContext = createContext(null);

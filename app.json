@@ -24,6 +24,7 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      
       [
         "expo-location",
         {
@@ -32,6 +33,6 @@
       ],
       "expo-status-bar"
     ],
-    "platforms": ["ios", "android"]
+    "platforms": ["ios", "android", "web"]
   }
 }

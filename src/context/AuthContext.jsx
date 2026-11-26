@@ -6,7 +6,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import * as SecureStore from "expo-secure-store";
+import * as SecureStore from "../lib/secureStorage";
 import { api, unwrapData } from "../lib/api";
 
 const AuthContext = createContext(null);

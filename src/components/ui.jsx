@@ -62,7 +62,6 @@ export function PageHeading({ eyebrow, title, subtitle }) {
 
 export function ParkingCard({ item, saved, onOpen, onToggle }) {
   const title = item.name || item.parking_name || "주차장";
-  const status = item.congestion?.status || item.congestion_status || "정보 없음";
   const rating = item.rating ?? item.average_rating;
   const fee = item.fee ?? item.hourly_fee ?? item.price;
   const id = item.id ?? item.parking_id;
@@ -73,23 +72,13 @@ export function ParkingCard({ item, saved, onOpen, onToggle }) {
       Alert.alert("즐겨찾기", cause?.message || "즐겨찾기를 변경하지 못했습니다.");
     }
   };
-  const statusColor = /여유|원활|available|open/i.test(status)
-    ? colors.green
-    : /만차|혼잡|full|busy/i.test(status)
-      ? colors.red
-      : /보통|normal/i.test(status)
-        ? colors.orange
-        : colors.muted;
 
   return (
     <View style={styles.card}>
       <Pressable style={styles.cardMain} onPress={onOpen} accessibilityRole="button" accessibilityLabel={`${title}, 상세 정보`}>
         <View style={styles.parkingIcon}><Text style={styles.parkingP}>P</Text></View>
         <View style={styles.cardBody}>
-          <View style={styles.cardTitleRow}>
-            <Text style={styles.cardTitle} numberOfLines={1}>{title}</Text>
-            <Text style={[styles.status, { color: statusColor }]} numberOfLines={1}>{status}</Text>
-          </View>
+          <Text style={styles.cardTitle} numberOfLines={1}>{title}</Text>
           <Text style={styles.address} numberOfLines={1}>{item.address || "주소 정보 없음"}</Text>
           <Text style={styles.meta} numberOfLines={1}>
             {rating != null ? `★ ${rating}` : ""}
@@ -144,9 +133,7 @@ export const ui = StyleSheet.create({
   parkingIcon: { width: 46, height: 46, borderRadius: 14, backgroundColor: colors.green, alignItems: "center", justifyContent: "center" },
   parkingP: { color: colors.white, fontSize: 27, fontWeight: "700" },
   cardBody: { flex: 1, minWidth: 0 },
-  cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   cardTitle: { flexShrink: 1, color: colors.dark, fontSize: 13, fontWeight: "700" },
-  status: { overflow: "hidden", backgroundColor: colors.pale, borderRadius: 7, paddingHorizontal: 7, paddingVertical: 4, fontSize: 9, fontWeight: "700", maxWidth: 74 },
   address: { color: colors.muted, fontSize: 11, marginTop: 5 },
   meta: { color: colors.dark, fontSize: 10, marginTop: 5 },
 });

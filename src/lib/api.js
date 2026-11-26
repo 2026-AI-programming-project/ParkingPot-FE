@@ -1,4 +1,10 @@
-const API_BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
+const configuredApiBaseUrl = (process.env.EXPO_PUBLIC_API_BASE_URL || "").trim();
+const API_BASE_URL = configuredApiBaseUrl
+  ? ( /^https?:\/\//i.test(configuredApiBaseUrl)
+      ? configuredApiBaseUrl
+      : `http://${configuredApiBaseUrl}`
+    ).replace(/\/+$/, "")
+  : "";
 
 function formatError(data, status) {
   const detail = data?.detail;

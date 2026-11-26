@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import * as Location from "expo-location";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,6 +7,7 @@ import { BrandHeader, ParkingCard, colors, ui } from "../../../components/ui";
 import KakaoMap from "../KakaoMap";
 import { useFavorites } from "../../../context/FavoritesContext";
 import { searchParkingLots } from "../parkingApi";
+import { coordinatesFor } from "../mapUtils";
 
 const DEFAULT_LOCATION = { latitude: 37.5665, longitude: 126.978 };
 
@@ -23,7 +24,8 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [priceFirst, setPriceFirst] = useState(false);
+  const [sortBy, setSortBy] = useState("distance");
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [accessibleOnly, setAccessibleOnly] = useState(false);
 
   const load = useCallback(async () => {
@@ -71,8 +73,8 @@ export default function HomeScreen() {
     let result = accessibleOnly
       ? lots.filter((item) => item.accessible === true || Number(item.accessible_spaces) > 0)
       : lots;
-    if (priceFirst) {
-      result = [...result].sort((left, right) => {
+    result = [...result].sort((left, right) => {
+      if (sortBy === "price") {
         const leftFee = feeFor(left);
         const rightFee = feeFor(right);
         const leftHasFee = Number.isFinite(leftFee);
@@ -80,19 +82,69 @@ export default function HomeScreen() {
         if (!leftHasFee) return rightHasFee ? 1 : 0;
         if (!rightHasFee) return -1;
         return leftFee - rightFee;
-      });
-    }
+      }
+      if (sortBy === "rating") {
+        const leftRating = Number(left.rating ?? left.average_rating);
+        const rightRating = Number(right.rating ?? right.average_rating);
+        const leftHasRating = Number.isFinite(leftRating);
+        const rightHasRating = Number.isFinite(rightRating);
+        if (!leftHasRating) return rightHasRating ? 1 : 0;
+        if (!rightHasRating) return -1;
+        return rightRating - leftRating;
+      }
+      const leftCoordinate = coordinatesFor(left);
+      const rightCoordinate = coordinatesFor(right);
+      if (!leftCoordinate) return rightCoordinate ? 1 : 0;
+      if (!rightCoordinate) return -1;
+      const distance = (point) => {
+        const radians = (degrees) => degrees * Math.PI / 180;
+        const dLat = radians(point.latitude - center.latitude);
+        const dLon = radians(point.longitude - center.longitude);
+        const a = Math.sin(dLat / 2) ** 2
+          + Math.cos(radians(center.latitude)) * Math.cos(radians(point.latitude))
+          * Math.sin(dLon / 2) ** 2;
+        return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      };
+      return distance(leftCoordinate) - distance(rightCoordinate);
+    });
     return result;
-  }, [accessibleOnly, lots, priceFirst]);
+  }, [accessibleOnly, center, lots, sortBy]);
+
+  const sortLabels = { distance: "거리순", price: "가격순", rating: "별점순" };
 
   return (
     <SafeAreaView style={ui.page} edges={["top"]}>
       <BrandHeader />
       <View style={styles.filters}>
-        <FilterChip title="내 주변" selected={!priceFirst} onPress={() => setPriceFirst(false)} />
-        <FilterChip title="요금순" selected={priceFirst} onPress={() => setPriceFirst((value) => !value)} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`정렬 기준, ${sortLabels[sortBy]}`}
+          accessibilityState={{ expanded: sortMenuOpen }}
+          onPress={() => setSortMenuOpen(true)}
+          style={styles.sortButton}
+        >
+          <Text style={styles.sortText}>{sortLabels[sortBy]}⌄</Text>
+        </Pressable>
         <FilterChip title="장애인 주차" selected={accessibleOnly} onPress={() => setAccessibleOnly((value) => !value)} />
       </View>
+      <Modal transparent visible={sortMenuOpen} animationType="fade" onRequestClose={() => setSortMenuOpen(false)}>
+        <View style={styles.menuLayer}>
+          <Pressable accessibilityRole="button" accessibilityLabel="정렬 메뉴 닫기" style={styles.menuBackdrop} onPress={() => setSortMenuOpen(false)} />
+          <View style={styles.sortMenu}>
+            {Object.entries(sortLabels).map(([value, label]) => (
+              <Pressable
+                key={value}
+                accessibilityRole="button"
+                accessibilityState={{ selected: sortBy === value }}
+                onPress={() => { setSortBy(value); setSortMenuOpen(false); }}
+                style={[styles.sortOption, sortBy === value && styles.selectedSortOption]}
+              >
+                <Text style={[styles.sortOptionText, sortBy === value && styles.selectedSortText]}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      </Modal>
       <View style={styles.map} accessibilityLabel="주차장 지도">
         <KakaoMap
           latitude={center.latitude}
@@ -152,6 +204,15 @@ function FilterChip({ title, selected, onPress }) {
 
 const styles = {
   filters: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 13, backgroundColor: colors.white },
+  sortButton: { borderWidth: 1, borderColor: colors.green, backgroundColor: colors.pale, borderRadius: 11, paddingHorizontal: 12, paddingVertical: 7 },
+  sortText: { color: colors.green, fontSize: 11, fontWeight: "700" },
+  menuLayer: { flex: 1 },
+  menuBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(16,37,31,0.16)" },
+  sortMenu: { position: "absolute", top: 116, left: 13, minWidth: 150, padding: 5, borderRadius: 13, backgroundColor: colors.white, elevation: 8, shadowColor: "#10251f", shadowOpacity: 0.16, shadowRadius: 12, shadowOffset: { width: 0, height: 5 } },
+  sortOption: { paddingHorizontal: 13, paddingVertical: 11, borderRadius: 9 },
+  selectedSortOption: { backgroundColor: colors.pale },
+  sortOptionText: { color: colors.dark, fontSize: 13, fontWeight: "600" },
+  selectedSortText: { color: colors.green, fontWeight: "700" },
   filterChip: { borderWidth: 1, borderColor: colors.border, borderRadius: 11, paddingHorizontal: 12, paddingVertical: 7 },
   selectedFilterChip: { borderColor: colors.green, backgroundColor: colors.pale },
   filterText: { color: "#475a51", fontSize: 11, fontWeight: "600" },
